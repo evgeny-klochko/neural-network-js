@@ -148,6 +148,48 @@ function createSampleFromFolders(path) {
 }
 
 
+app.get('/generate', function (req, res) {
+  var inputBitmap;
+  var outputBitmap;
+  var training;
+  var learningSample = [];
+  var path = '../images/generate';
+  var network = new brain.NeuralNetwork();
+  fs.readdir(path, function (err, files) {
+    var inputFile = files[0];
+    var outputFile = files[1];
+    jimp.read(path + '/' + inputFile)
+      .then(function (image) {
+        inputBitmap = processImage(image);
+        console.log(inputBitmap);
+        return  jimp.read(path + '/' + outputFile)
+      })
+      .then(function (image) {
+        outputBitmap = processImage(image);
+        learningSample = [
+          {
+            input: inputBitmap.brightness,
+            output: outputBitmap.brightness
+          }
+        ];
+        console.log(learningSample);
+        training = network.train(learningSample, {
+          errorThresh: 0.05,
+          iterations: 20000,
+          log: true,
+          logPeriod: 20,
+          learningRate: 0.3
+        });
+
+        writeFile('../network/halfNet.json', JSON.stringify(network), function () {
+          console.log('network has been saved');
+          res.send('generated');
+        });
+      })
+  });
+  
+})
+
 app.get('/prepare', function (req, res) {
   var res = createSample('../images/numbers');
 })

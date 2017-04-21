@@ -4,341 +4,81 @@ var brain = require('brain');
 var fs = require('fs');
 var writeFile = require('write');
 var jsonfile = require('jsonfile')
-var net = new brain.NeuralNetwork({
-  hiddenLayers: [300, 150]
-});
-var training = {};
+var questionNet = require('./questionNet');
+var bodyParser = require('body-parser');
 
+var myNet = require('./net');
+require('./json');
+
+//var gg = myNet.parseImage('../images/numbers/1.jpg');
+//
+//
+//gg
+//  .then(function (response) {
+//    console.log(response);
+//  })
+
+function allowCrossOrogin(res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "X-Requested-With, Content-Type");
+  next();
+}
 
 var app = express();
 app.set('view engine', 'ejs');
-
-function processImage(image) {
-  var result = {};
-  var img = image
-
-  return jimp.read(img)
-    .then(function (item) {
-      var brightness;
-      var vector = [];
-      var pixel = [];
-
-      var i = 0;
-      item.bitmap.data.forEach(function (item) {
-        if (i !== 3) {
-          pixel.push(item);
-          i = i + 1;
-        } else {
-          vector.push(pixel);
-          pixel = [];
-          i = 0;
-        }
-      });
-      result.bitmap = vector;
-      result.brightness = calcBrightness(vector);
-      result.map = divideTiRows(item, result.brightness);
-
-      return result;
-    });
-}
-
-function divideTiRows(image, vector) {
-  var result = [];
-  var row = [];
-  var image = image;
-  var vector = vector;
-  var width = image.bitmap.width;
-  var height = image.bitmap.height;
-  var i = 0;
+app.use( bodyParser.json() );
 
 
-  vector.forEach(function (item) {
-
-    i = i + 1;
-    if (i < width) {
-      row.push(item);
-    } else {
-      row.push(item);
-      result.push(row);
-      row = [];
-      i = 0;
-    }
-  });
-
-  return result;
-}
-var sq = [
-  [0, 255, 0, 0, 255],
-  [255, 0, 255, 0, 255],
-  [0, 0, 255, 0, 255],
-  [0, 255, 0, 0, 255],
-  [255, 0, 255, 0, 255],
-  [0, 255, 0, 0, 255]
-];
-
-function prepareImage(path) {
-  var bitmap = [];
-  fs.readdir(path, function (err, files) {
-    var file = files[0];
-    console.log(file);
-    processImage(path + '/' + file)
-      .then(function (item) {
-        var current = {};
-        current.input = item.brightness;
-        bitmap.push(current);
-      });
-  })
-}
-
-function calcBrightness(vector) {
-  var result = [];
-  var vector = vector;
-  vector.forEach(function (item) {
-    var pixelBrightness;
-    pixelBrightness = Math.round(item[0] * 0.299 + item[1] * 0.587 + item[2] * 0.114);
-    result.push(pixelBrightness);
-  });
-
-  return result;
-}
-
-function createSample(path) {
-  var sample = [];
-  fs.readdir(path, function (err, files) {
-    console.log(files);
-    files.forEach(function(file, fileIndex) {
-      processImage(path + '/' + file)
-        .then(function (item) {
-          var current = {};
-          current.output = {};
-          current.input = item.brightness;
-          current.output[fileIndex + 1] = 1;
-          sample.push(current);
-          writeFile('../samples/numbers.json', JSON.stringify(sample));
-          console.log('written');
-        });
-    });
-  });
-  return sample;
-}
-
-function createSampleFromFolders(path) {
-  var sample = [];
-  fs.readdir(path, function (err, folders) {
-    console.log(folders);
-    folders.forEach(function(folder) {
-      fs.readdir(path + '/' + folder, function(err, files) {
-        console.log(files);
-        files.forEach(function(file) {
-          processImage(path + '/' + folder + '/' + file)
-            .then(function (item) {
-              var current = {};
-              current.output = {};
-              current.input = item.brightness;
-              current.output[folder] = 1;
-              sample.push(current);
-              writeFile('../samples/numbers.json', JSON.stringify(sample));
-              console.log('written');
-            });
-        });
-      })
-    });
-  });
-  return sample;
-}
-
-
-app.get('/generate', function (req, res) {
-  var inputBitmap;
-  var outputBitmap;
-  var training;
-  var learningSample = [];
-  var path = '../images/generate';
-  var network = new brain.NeuralNetwork();
-  fs.readdir(path, function (err, files) {
-    var inputFile = files[0];
-    var outputFile = files[1];
-    jimp.read(path + '/' + inputFile)
-      .then(function (image) {
-        inputBitmap = processImage(image);
-        console.log(inputBitmap);
-        return  jimp.read(path + '/' + outputFile)
-      })
-      .then(function (image) {
-        outputBitmap = processImage(image);
-        learningSample = [
-          {
-            input: inputBitmap.brightness,
-            output: outputBitmap.brightness
-          }
-        ];
-        console.log(learningSample);
-        training = network.train(learningSample, {
-          errorThresh: 0.05,
-          iterations: 20000,
-          log: true,
-          logPeriod: 20,
-          learningRate: 0.3
-        });
-
-        writeFile('../network/halfNet.json', JSON.stringify(network), function () {
-          console.log('network has been saved');
-          res.send('generated');
-        });
-      })
-  });
-  
+app.all('/', function (req, res, next) {
+  allowCrossOrogin(res, next)
+  res.send('hello world');
 })
 
-app.get('/prepare', function (req, res) {
-  var res = createSample('../images/numbers');
+app.all('/prepare', function (req, res, next) {
+  allowCrossOrogin(res, next)
+});
+
+app.all('/learn', function (req, res, next) {
+  allowCrossOrogin(res, next)
+});
+
+app.all('/use', function (req, res, next) {
+  allowCrossOrogin(res, next)
 })
 
-app.get('/prepare/folders', function (req, res) {
-  var res = createSampleFromFolders('../images/folders');
+app.get('/prepare', function (req, res, next) {
+  myNet.prepare('../images/folders', '../samples/new.json')
+    .then(function(response) {
+      res.send('prepared');
+    })
 })
 
-app.get('/prepare/figures', function (req, res) {
-  var res = createSampleFromFolders('../images/figures');
+app.get('/learn', function (req, res, next) {
+  myNet.learn('../samples/new.json', '../network/new.json')
+    .then(function(response) {
+      res.send(response);
+    })
 })
 
-app.get('/learn', function (req, res) {
-  var sample;
-  var samplePath = '../samples/numbers.json';
+app.get('/use', function (req, res, next) {
+  myNet.use('../images/forTest', '../network/new.json')
+    .then(function(response) {
+      res.send(response)
+    })
+})
 
-  jsonfile.readFile(samplePath, function(err, obj) {
-    training = net.train(obj, {
-      errorThresh: 0.0005,
-      iterations: 20000,
-      log: true,
-      logPeriod: 20,
-      learningRate: 0.1
+app.post('/use', function (req, res, next) {
+  var store = '../images/tmp/';
+  var forTest = '../images/forTest';
+  var testItem = '/out.jpg';
+  var network = '../network/new.json';
+
+  myNet.recognize(req, store, forTest, testItem, network)
+    .then(function (response) {
+      res.send(response);
     });
 
-    writeFile('../network/net.json', JSON.stringify(net), function () {
-      console.log('network has been saved');
-    });
-    res.send(training);
-  });
-
-app.get('/test/:id', function (req, res) {
-  var sample;
-  var network = new brain.NeuralNetwork({
-    hiddenLayers: [300, 150]
-  });
-  var result = {
-    value: 0
-  };
-  var id = req.params.id;
-  var samplePath = '../samples/numbers.json';
-  jsonfile.readFile('../network/net.json', function (err, netObj) {
-    jsonfile.readFile(samplePath, function(err, obj) {
-      var outArray = [];
-      var max = 0;
-      network.fromJSON(netObj);
-      var output = network.run(obj[id - 1].input);
-      for (key in output) {
-        outArray.push(output[key]);
-      }
-      outArray.forEach(function (item,index) {
-        if (item > max) {
-          max = item;
-          result.value = index;
-        }
-      });
-      res.send(output);
-    });
-  })
-});
-
-});
-
-app.get('/', function (req, res) {
-  var sample;
-  var network = new brain.NeuralNetwork({
-    hiddenLayers: [300, 150]
-  });
-  var result = {
-    value: 0
-  };
-  var id = 4;
-  var samplePath = '../samples/numbers.json';
-
-  jsonfile.readFile('../network/net.json', function (err, netObj) {
-    jsonfile.readFile(samplePath, function(err, obj) {
-      var outArray = [];
-      var max = 0;
-      network.fromJSON(netObj);
-      var output = network.run(obj[id - 1].input);
-      for (key in output) {
-        outArray.push(output[key]);
-      }
-      outArray.forEach(function (item,index) {
-        if (item > max) {
-          max = item;
-          result.value = index;
-        }
-      });
-      res.send(output);
-    });
-  })
-});
-
-app.get('/image', function (req, res) {
-  var image;
-  var path = '../images/forTest'
-  var sample;
-  var network = new brain.NeuralNetwork({
-    hiddenLayers: [300, 150]
-  });
-  var result = {
-    number: 0,
-    value: 0
-  };
-
-  var bitmap = [];
-  var figures = {
-    '0': 'rectangle',
-    '1': 'round',
-    '2': 'square',
-    '3': 'treangle'
-  };
-  fs.readdir(path, function (err, files) {
-    var file = files[0];
-    console.log(file);
-    processImage(path + '/' + file)
-      .then(function (item) {
-        var current = {};
-        current.input = item.brightness;
-        bitmap = current.input;
-        jsonfile.readFile('../network/net.json', function (err, netObj) {
-          var outArray = [];
-          var max = 0;
-          network.fromJSON(netObj);
-          var output = network.run(bitmap);
-          console.log(network);
-          for (key in output) {
-            outArray.push(output[key]);
-          }
-          outArray.forEach(function (item,index) {
-            if (item > max) {
-              max = item;
-              result.number = index;
-              result.value = max;
-            }
-          });
-          res.render('pages/main', {
-            output: JSON.stringify(output),
-            max: result.value,
-            answer: result.number,
-            figure: figures[result.number]
-          });
-        })
-      });
-  })
-
-
-});
+})
 
 app.listen(1337, function () {
   console.log('Express listennig');

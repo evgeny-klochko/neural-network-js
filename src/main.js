@@ -20,13 +20,13 @@ require('./json');
 
 function allowCrossOrogin(res, next) {
   res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "X-Requested-With, Content-Type");
+  res.header("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, Content-length");
   next();
 }
 
 var app = express();
 app.set('view engine', 'ejs');
-app.use( bodyParser.json() );
+app.use( bodyParser.json({limit: '50mb'}));
 
 
 app.all('/', function (req, res, next) {
@@ -34,15 +34,15 @@ app.all('/', function (req, res, next) {
   res.send('hello world');
 })
 
-app.all('/prepare', function (req, res, next) {
-  allowCrossOrogin(res, next)
-});
-
 app.all('/learn', function (req, res, next) {
   allowCrossOrogin(res, next)
 });
 
 app.all('/use', function (req, res, next) {
+  allowCrossOrogin(res, next)
+})
+
+app.all('/border', function (req, res, next) {
   allowCrossOrogin(res, next)
 })
 
@@ -67,6 +67,15 @@ app.get('/use', function (req, res, next) {
     })
 })
 
+app.post('/border', function (req, res, next) {
+  myNet.sobol('../images/border/0.jpg', req)
+    .then(function(response) {
+      res.send(response);
+    })
+})
+
+
+
 app.post('/use', function (req, res, next) {
   var store = '../images/tmp/';
   var forTest = '../images/forTest';
@@ -80,6 +89,6 @@ app.post('/use', function (req, res, next) {
 
 })
 
-app.listen(1337, function () {
-  console.log('Express listennig');
+app.listen(3010, function () {
+  console.log('Express listennig. Port : 3010');
 });
